@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { FirebaseService } from '../auth/firebase.service';
-import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
+import { CustomJwtPayload } from '../auth/auth.service';
+import { BaseService } from '../common/base/base.service';
+import { ValidationUtils } from '../common/utils/validation.utils';
 import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { UserProfileResponse } from './interfaces/user-profile.interface';
 
 export class UpdateUserProfileDto {
   @IsString()
@@ -19,76 +22,59 @@ export class UpdateUserProfileDto {
   businessType?: string;
 }
 
-// First, create a type for the response
-type UserProfileResponse = {
-  name: string;
-  date_of_birth?: Date | null;
-  businessType: string;
-};
-
 @Injectable()
-export class UserService {
+export class UserService extends BaseService {
   constructor(
-    private readonly prismaService: PrismaService,
+    protected readonly prismaService: PrismaService,
     private readonly firebaseService: FirebaseService,
     private readonly authService: AuthService,
-  ) {}
+  ) {
+    super(prismaService);
+  }
+
+  async getUserProfile(token: string): Promise<UserProfileResponse> {
+    const decodedToken = await this.authService.verifyCustomToken(token);
+    ValidationUtils.validateRequiredFields(decodedToken, ['uniqueId']);
+
+    const user = await this.findOne('user', { uniqueId: decodedToken.uniqueId }, {
+      name: true,
+      date_of_birth: true,
+      businessType: true,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
 
   async updateUserProfile(
-    token: string,
+    decodedToken: CustomJwtPayload,
     userData: UpdateUserProfileDto,
   ): Promise<UserProfileResponse> {
-    try {
-      const decodedToken = await this.authService.verifyCustomToken(token);
+    ValidationUtils.validateRequiredFields(decodedToken, ['uniqueId']);
+    await ValidationUtils.validateDTO(userData);
 
-      if (!decodedToken || !decodedToken.uniqueId) {
-        throw new UnauthorizedException('Invalid token or missing uniqueId');
-      }
-
-      // Only include fields that were provided in the update
-      const updateData: any = {};
-
-      if (userData.name !== undefined) {
-        updateData.name = userData.name;
-      }
-
-      if (userData.date_of_birth !== undefined) {
-        updateData.date_of_birth = new Date(userData.date_of_birth);
-      }
-
-      if (userData.businessType !== undefined) {
-        updateData.businessType = userData.businessType;
-      }
-
-      // If no fields to update, throw error
-      if (Object.keys(updateData).length === 0) {
-        throw new Error('No fields provided for update');
-      }
-
-      // Ensure required fields are always selected
-      const selectFields = {
+    const updateData = this.filterUpdateData(userData);
+    
+    return this.update(
+      'user',
+      { uniqueId: decodedToken.uniqueId },
+      updateData,
+      {
         name: true,
         date_of_birth: true,
         businessType: true,
-      };
-
-      const updatedUser = await this.prismaService.user.update({
-        where: {
-          uniqueId: decodedToken.uniqueId,
-        },
-        data: updateData,
-        select: selectFields,
-      });
-
-      return updatedUser;
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
       }
-      if (error.code === 'P2025') {
-        throw new Error('User not found');
-      }
-      throw new Error('Failed to update user profile');
-    }
+    );
+  }
+
+  private filterUpdateData(userData: UpdateUserProfileDto): any {
+    const updateData: any = {};
+    if (userData.name !== undefined) updateData.name = userData.name;
+    if (userData.date_of_birth !== undefined) updateData.date_of_birth = new Date(userData.date_of_birth);
+    if (userData.businessType !== undefined) updateData.businessType = userData.businessType;
+    return updateData;
   }
 }

@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   UseGuards,
   Request,
@@ -9,7 +10,15 @@ import {
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { IsString, IsOptional, IsDateString } from 'class-validator';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+  ApiProperty,
+} from '@nestjs/swagger';
+import { UserProfileResponse } from './interfaces/user-profile.interface';
 
 export class UpdateUserProfileDto {
   @ApiProperty({
@@ -41,12 +50,28 @@ export class UpdateUserProfileDto {
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get user profile',
+    description: "Retrieves the current user's profile information",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+  })
+  async getUserProfile(@Request() req): Promise<UserProfileResponse> {
+    return this.userService.getUserProfile(req.headers.authorization);
+  }
+
   @Post('profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Update user profile',
-    description: 'Updates user profile information including name, date of birth, and business type',
+    description:
+      'Updates user profile information including name, date of birth, and business type',
   })
   @ApiBody({ type: UpdateUserProfileDto })
   @ApiResponse({
@@ -91,28 +116,12 @@ export class UserController {
   })
   async updateProfile(
     @Request() req,
-    @Body() profileData: UpdateUserProfileDto,
-  ) {
-    try {
-      const token = req.headers.authorization.split(' ')[1];
-      const updatedFields = await this.userService.updateUserProfile(
-        token,
-        profileData,
-      );
-
-      return {
-        success: true,
-        data: {
-          updated_fields: updatedFields,
-        },
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      throw new BadRequestException({
-        success: false,
-        message: error.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    @Body() updateUserProfileDto: UpdateUserProfileDto,
+  ): Promise<UserProfileResponse> {
+    // Extract token from the user object set by JwtAuthGuard
+    return this.userService.updateUserProfile(
+      req.user,
+      updateUserProfileDto,
+    );
   }
 }

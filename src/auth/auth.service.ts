@@ -18,7 +18,7 @@ interface DecodedFirebaseToken {
   exp: number;
 }
 
-interface CustomJwtPayload {
+export interface CustomJwtPayload {
   uid: string;
   email?: string;
   phoneNumber?: string;
@@ -176,7 +176,11 @@ export class AuthService {
 
   async verifyCustomToken(token: string): Promise<CustomJwtPayload> {
     try {
-      const decoded = jwt.verify(token, this.jwtSecret) as CustomJwtPayload;
+      const decoded = jwt.verify(token, this.jwtSecret, {
+        algorithms: ['HS256'],
+        audience: this.configService.get('JWT_AUDIENCE') || undefined,
+        issuer: this.configService.get('JWT_ISSUER') || undefined,
+      }) as CustomJwtPayload;
 
       if (!decoded.uniqueId) {
         throw new TokenValidationError(
