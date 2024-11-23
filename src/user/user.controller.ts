@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
   BadRequestException,
+  Param,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -19,6 +20,7 @@ import {
   ApiProperty,
 } from '@nestjs/swagger';
 import { UserProfileResponse } from './interfaces/user-profile.interface';
+import { NotFoundException } from '@nestjs/common';
 
 export class UpdateUserProfileDto {
   @ApiProperty({

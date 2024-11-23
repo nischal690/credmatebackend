@@ -10,14 +10,16 @@ datasource db {
 model User {
   id            String    @id @default(uuid())
   email         String?   @unique
-  uniqueId      String    @unique
-  phoneNumber   String    @unique
   password      String?
   name          String?
-  date_of_birth DateTime?
-  businessType  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  businessType  String?
+  date_of_birth DateTime?
+  phoneNumber   String    @unique
+  uniqueId      String    @unique
+  aadhaarNumber String?   @unique
+  panNumber     String?   @unique
 
   @@map("users")
 }

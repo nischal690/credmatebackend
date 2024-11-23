@@ -33,6 +33,10 @@ export class UserRepository implements IUserRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { phoneNumber } });
+  }
+
   async update(id: string, data: Partial<User>): Promise<User> {
     return this.prisma.user.update({
       where: { id },
