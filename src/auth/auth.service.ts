@@ -20,17 +20,19 @@ interface DecodedFirebaseToken {
 
 export interface CustomJwtPayload {
   uid: string;
+  phoneNumber: string;
+  uniqueId: string;
   email?: string;
-  phoneNumber?: string;
-  emailVerified?: boolean;
   name?: string;
-  picture?: string;
-  iat?: number;
-  exp?: number;
-  uniqueId?: string;
 }
 
-// Extend JwtPayload to include our custom fields
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresIn: number;
+  refreshTokenExpiresIn: number;
+}
+
 interface ExtendedJwtPayload extends jwt.JwtPayload, CustomJwtPayload {}
 
 export class TokenValidationError extends Error {
@@ -49,6 +51,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly jwtSecret: string;
   private readonly jwtExpiresIn: string;
+  private readonly refreshTokenSecret: string;
+  private readonly refreshTokenExpiresIn: string;
 
   constructor(
     private readonly firebaseService: FirebaseService,
@@ -56,7 +60,9 @@ export class AuthService {
     private readonly prismaService: PrismaService,
   ) {
     this.jwtSecret = this.getRequiredConfig('JWT_SECRET');
-    this.jwtExpiresIn = this.configService.get('JWT_EXPIRES_IN') || '1h';
+    this.jwtExpiresIn = this.configService.get('JWT_ACCESS_TOKEN_EXPIRES_IN') || '30m';
+    this.refreshTokenSecret = this.getRequiredConfig('JWT_REFRESH_SECRET');
+    this.refreshTokenExpiresIn = this.configService.get('JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d';
   }
 
   private getRequiredConfig(key: string): string {
@@ -81,7 +87,45 @@ export class AuthService {
     return `u${cleanPhone.slice(-4)}${hash}`;
   }
 
-  async validateFirebaseToken(idToken: string): Promise<string> {
+  private generateTokens(payload: CustomJwtPayload): TokenResponse {
+    const accessToken = jwt.sign(payload, this.jwtSecret, {
+      expiresIn: this.jwtExpiresIn,
+      algorithm: 'HS256',
+      audience: this.configService.get('JWT_AUDIENCE') || undefined,
+      issuer: this.configService.get('JWT_ISSUER') || undefined,
+    });
+
+    const refreshToken = jwt.sign(payload, this.refreshTokenSecret, {
+      expiresIn: this.refreshTokenExpiresIn,
+      algorithm: 'HS256',
+    });
+
+    // Convert both expiration times to seconds
+    const accessTokenExpiresIn = this.parseTimeToSeconds(this.jwtExpiresIn);
+    const refreshTokenExpiresIn = this.parseTimeToSeconds(this.refreshTokenExpiresIn);
+
+    return {
+      accessToken,
+      refreshToken,
+      accessTokenExpiresIn,
+      refreshTokenExpiresIn,
+    };
+  }
+
+  private parseTimeToSeconds(time: string): number {
+    const unit = time.slice(-1);
+    const value = parseInt(time.slice(0, -1));
+    
+    switch(unit) {
+      case 's': return value;
+      case 'm': return value * 60;
+      case 'h': return value * 60 * 60;
+      case 'd': return value * 24 * 60 * 60;
+      default: return 30 * 60; // default to 30 minutes if invalid format
+    }
+  }
+
+  async validateFirebaseToken(idToken: string): Promise<TokenResponse> {
     try {
       this.logger.debug('Validating Firebase token...');
 
@@ -106,7 +150,7 @@ export class AuthService {
       // Generate unique ID from phone number
       const uniqueId = this.generateUniqueId(decodedToken.phone_number);
 
-      // Create or update user in database for all tokens including test tokens
+      // Create or update user in database
       await this.prismaService.user.upsert({
         where: { phoneNumber: decodedToken.phone_number },
         update: {
@@ -122,7 +166,7 @@ export class AuthService {
         },
       });
 
-      // Generate JWT token
+      // Generate JWT tokens
       const jwtPayload: CustomJwtPayload = {
         uid: decodedToken.uid,
         phoneNumber: decodedToken.phone_number,
@@ -131,16 +175,7 @@ export class AuthService {
         name: decodedToken.name,
       };
 
-      const customToken = jwt.sign(jwtPayload, this.jwtSecret, {
-        expiresIn: this.jwtExpiresIn,
-        algorithm: 'HS256',
-        audience: this.configService.get('JWT_AUDIENCE') || undefined,
-        issuer: this.configService.get('JWT_ISSUER') || undefined,
-        notBefore: 0,
-      });
-
-      this.logger.debug('Custom JWT token generated successfully');
-      return customToken;
+      return this.generateTokens(jwtPayload);
     } catch (error) {
       this.logger.error('Token validation failed', {
         error: error.message,
@@ -170,6 +205,28 @@ export class AuthService {
         'VALIDATION_ERROR',
         'Failed to validate Firebase token',
         error,
+      );
+    }
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
+    try {
+      const decoded = jwt.verify(refreshToken, this.refreshTokenSecret, {
+        algorithms: ['HS256'],
+      }) as CustomJwtPayload;
+
+      // Generate new tokens
+      return this.generateTokens(decoded);
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new TokenValidationError(
+          'REFRESH_TOKEN_EXPIRED',
+          'Refresh token has expired',
+        );
+      }
+      throw new TokenValidationError(
+        'INVALID_REFRESH_TOKEN',
+        'Invalid refresh token',
       );
     }
   }
