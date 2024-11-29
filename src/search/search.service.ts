@@ -8,14 +8,16 @@ import { Prisma } from '@prisma/client';
 export class SearchService {
   constructor(
     private readonly faceRecognitionService: FaceRecognitionService,
-    private readonly prisma: PrismaService
+    private readonly prisma: PrismaService,
   ) {}
 
   async searchByFace(imageBuffer: Buffer) {
     return this.faceRecognitionService.searchFaceByImage(imageBuffer);
   }
 
-  async searchByMobileNumber(phoneNumber: string): Promise<UserProfileResponse | null> {
+  async searchByMobileNumber(
+    phoneNumber: string,
+  ): Promise<UserProfileResponse | null> {
     if (!phoneNumber) {
       throw new BadRequestException('Phone number is required');
     }
@@ -26,7 +28,7 @@ export class SearchService {
         name: true,
         date_of_birth: true,
         businessType: true,
-      }
+      },
     });
 
     if (!user) {
@@ -47,7 +49,7 @@ export class SearchService {
         name: true,
         date_of_birth: true,
         businessType: true,
-      }
+      },
     });
 
     if (!user) {
@@ -57,10 +59,12 @@ export class SearchService {
     return user;
   }
 
-  async searchByAadhar(aadhaarNumber: string): Promise<UserProfileResponse | null> {
+  async searchByAadhar(
+    aadhaarNumber: string,
+  ): Promise<UserProfileResponse | null> {
     console.log('Input Aadhaar number type:', typeof aadhaarNumber);
     console.log('Input Aadhaar number:', aadhaarNumber);
-    
+
     if (!aadhaarNumber) {
       throw new BadRequestException('Aadhaar number is required');
     }
@@ -71,12 +75,14 @@ export class SearchService {
 
     // Validate Aadhaar number format (12 digits)
     if (!/^\d{12}$/.test(formattedAadhaar)) {
-      throw new BadRequestException('Invalid Aadhaar number format. Must be 12 digits');
+      throw new BadRequestException(
+        'Invalid Aadhaar number format. Must be 12 digits',
+      );
     }
 
     // First, let's check if any users exist
     const allUsers = await this.prisma.user.findMany({
-      take: 5
+      take: 5,
     });
     console.log('First 5 users in database:', allUsers);
 
@@ -88,13 +94,13 @@ export class SearchService {
 
     const user = await this.prisma.user.findFirst({
       where: {
-        aadhaarNumber: formattedAadhaar
+        aadhaarNumber: formattedAadhaar,
       } as Prisma.UserWhereInput,
       select: {
         name: true,
         date_of_birth: true,
         businessType: true,
-      }
+      },
     });
 
     console.log('Prisma query result:', user);
@@ -106,7 +112,9 @@ export class SearchService {
     return user;
   }
 
-  async searchByPanNumber(panNumber: string): Promise<UserProfileResponse | null> {
+  async searchByPanNumber(
+    panNumber: string,
+  ): Promise<UserProfileResponse | null> {
     if (!panNumber) {
       throw new BadRequestException('PAN number is required');
     }
@@ -117,7 +125,7 @@ export class SearchService {
         name: true,
         date_of_birth: true,
         businessType: true,
-      }
+      },
     });
 
     if (!user) {
