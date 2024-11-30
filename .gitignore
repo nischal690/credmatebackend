@@ -59,6 +59,8 @@ src/auth/credential.json
 src/auth/credential.json
 src/auth/credential.json
 
-# Firebase credentials
+# Credentials
 src/auth/credmate.json
+
+# Firebase credentials
 .vercel
