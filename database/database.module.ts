@@ -1,7 +1,7 @@
 // database/database.module.ts
 import { Global, Module } from '@nestjs/common';
-import { PrismaModule } from './prisma/prisma.module';
-import { UserRepository } from './repositories/user.repository';
+import { PrismaModule } from 'database/prisma/prisma.module';
+import { UserRepository } from 'database/repositories/user.repository';
 
 @Global()
 @Module({

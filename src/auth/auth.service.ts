@@ -3,7 +3,7 @@ import { FirebaseService } from './firebase.service';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { PrismaService } from '../database/prisma/prisma.service';
 
 // Define interfaces for better type safety
 interface DecodedFirebaseToken {

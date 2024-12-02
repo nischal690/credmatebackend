@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { FaceRecognitionService } from './services/face-recognition.service';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { PrismaService } from '../database/prisma/prisma.service';
 import { UserProfileResponse } from '../user/interfaces/user-profile.interface';
 import { Prisma } from '@prisma/client';
 

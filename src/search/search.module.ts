@@ -6,12 +6,12 @@ import { FaceRecognitionService } from './services/face-recognition.service';
 import awsConfig from '../config/aws.config';
 import { AuthModule } from '../auth/auth.module';
 import { AwsConfigService } from '../common/config/aws.config.service';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
-  imports: [ConfigModule.forFeature(awsConfig), AuthModule],
+  imports: [ConfigModule.forFeature(awsConfig), AuthModule, PrismaModule],
   controllers: [SearchController],
-  providers: [SearchService, FaceRecognitionService, AwsConfigService, PrismaService],
+  providers: [SearchService, FaceRecognitionService, AwsConfigService],
   exports: [SearchService, FaceRecognitionService],
 })
 export class SearchModule {}
