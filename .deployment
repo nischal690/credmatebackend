@@ -1,2 +1,4 @@
 [config]
-command = bash ./deploy.sh
+SCM_DO_BUILD_DURING_DEPLOYMENT=true
+WEBSITE_NODE_DEFAULT_VERSION=~20
+command = npm install && npm run build
