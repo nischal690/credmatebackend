@@ -1,4 +1,4 @@
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 export class ImageUtils {
   static async convertToJpeg(imageBuffer: Buffer): Promise<Buffer> {
