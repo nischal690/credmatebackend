@@ -3,12 +3,12 @@ name: Deploy to Azure App Service
 on:
   push:
     branches:
-      - main  # or your default branch
-  workflow_dispatch:  # Allow manual trigger
+      - main
+  workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: credmate-backend    # Replace with your app name
-  NODE_VERSION: '20.x'                   # Matches your engine requirement
+  AZURE_WEBAPP_NAME: credmate-backend
+  NODE_VERSION: '20.x'
 
 jobs:
   build-and-deploy:
@@ -23,6 +23,11 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Create .env file
       run: |
@@ -53,7 +58,7 @@ jobs:
     - name: Build
       run: npm run build
 
-    - name: Deploy to Azure App Service
+    - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
