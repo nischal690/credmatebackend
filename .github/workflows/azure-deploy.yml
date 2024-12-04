@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main  # or your default branch
+  workflow_dispatch:  # Allow manual trigger
 
 env:
   AZURE_WEBAPP_NAME: credmate-backend    # Replace with your app name
