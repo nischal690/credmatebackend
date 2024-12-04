@@ -35,13 +35,10 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# environment
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-.env
+.env.*
+credmate.json
 
 # temp directory
 .temp
@@ -67,4 +64,3 @@ src/auth/credmate.json
 
 # Sensitive files
 src/auth/credmate.json
-.env

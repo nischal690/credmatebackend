@@ -1,0 +1,60 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+env:
+  AZURE_WEBAPP_NAME: credmate-backend    # Replace with your app name
+  NODE_VERSION: '20.x'                   # Matches your engine requirement
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Create .env file
+      run: |
+        cat << EOF > .env
+        FIREBASE_CREDENTIALS_PATH=${{ secrets.FIREBASE_CREDENTIALS_PATH }}
+        JWT_SECRET=${{ secrets.JWT_SECRET }}
+        JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+        JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+        JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+        JWT_ACCESS_TOKEN_EXPIRES_IN=${{ secrets.JWT_ACCESS_TOKEN_EXPIRES_IN }}
+        JWT_REFRESH_TOKEN_EXPIRES_IN=${{ secrets.JWT_REFRESH_TOKEN_EXPIRES_IN }}
+        JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+        DATABASE_URL=${{ secrets.DATABASE_URL }}
+        AWS_REGION=${{ secrets.AWS_REGION }}
+        AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REKOGNITION_COLLECTION_ID=${{ secrets.AWS_REKOGNITION_COLLECTION_ID }}
+        AWS_REKOGNITION_FACE_MATCH_THRESHOLD=${{ secrets.AWS_REKOGNITION_FACE_MATCH_THRESHOLD }}
+        EOF
+
+    - name: Create credmate.json file
+      run: |
+        echo "${{ secrets.CREDMATE_JSON_CONTENT }}" > src/auth/credmate.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Deploy to Azure App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: .
