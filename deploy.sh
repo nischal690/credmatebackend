@@ -9,7 +9,7 @@ cd "$DEPLOYMENT_TARGET"
 
 # Install dependencies
 echo "Installing dependencies..."
-npm install
+npm ci
 
 # Build the application
 echo "Building the application..."
