@@ -2,37 +2,53 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Security headers
+  app.use(helmet());
+  app.use(compression());
+  
+  // Enable CORS with secure configuration
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    credentials: true,
+    maxAge: 3600,
+  });
 
-  // Enable validation pipe globally
-  app.useGlobalPipes(new ValidationPipe());
+  // Validation pipe with secure defaults
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: false,
+      },
+      disableErrorMessages: process.env.NODE_ENV === 'production',
+    }),
+  );
 
   // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('CredMate API')
-    .setDescription('The CredMate API documentation')
+    .setTitle('Credmate API')
+    .setDescription('The Credmate API description')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'JWT-auth',
-    )
+    .addBearerAuth()
     .build();
-
+  
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 3000;
-  // Make sure it's listening on 0.0.0.0 for Docker access
-  await app.listen(port, '0.0.0.0');
-  console.log(`Application is running on port ${port}`);
+  await app.listen(port);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
+
 bootstrap();

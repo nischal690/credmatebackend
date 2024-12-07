@@ -30,7 +30,7 @@ export class FirebaseAuthGuard implements CanActivate {
     try {
       const decodedToken = await this.firebaseService.verifyIdToken(token);
 
-      // Add user data to request with proper typing
+      // Add user data to request
       request.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,

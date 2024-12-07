@@ -7,8 +7,8 @@ import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
-  controllers: [AuthController],
   providers: [AuthService, FirebaseService],
-  exports: [AuthService],
+  exports: [AuthService, FirebaseService],
+  controllers: [AuthController],
 })
 export class AuthModule {}

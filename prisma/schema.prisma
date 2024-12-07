@@ -18,9 +18,62 @@ model User {
   businessType  String?
   date_of_birth DateTime?
   phoneNumber   String    @unique
-  uniqueId      String    @unique
   aadhaarNumber String?   @unique
   panNumber     String?   @unique
+  profileImageUrl String?
+  notifications Notification[]
+  reportedBorrowers ReportedBorrower[]
+  savedByUsers SavedProfile[] @relation("SavedByUsers")
+  savedUsers SavedProfile[] @relation("SavedUsers")
 
   @@map("users")
+}
+
+model Notification {
+  id         String    @id @default(uuid())
+  user_id    String
+  type       String
+  title      String
+  message    String
+  data       Json?
+  is_read    Boolean   @default(false)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  expires_at DateTime?
+  user       User      @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+model ReportedBorrower {
+  id                      Int      @id @default(autoincrement())
+  uuid                    String   // userid of the user
+  mobileNumber           String
+  unpaidAmount           Float
+  dueDate                DateTime
+  confirmedByBorrower    Boolean  @default(false)
+  borrowerCreatedAccount Boolean  @default(false)
+  creationDate           DateTime @default(now())
+  recoveryMode           Boolean  @default(false)
+  user                   User     @relation(fields: [uuid], references: [id])
+
+  @@index([uuid])
+  @@map("reported_borrowers")
+}
+
+model SavedProfile {
+  id                String   @id @default(uuid())
+  savedByUserId     String   // UUID of user who saved the profile
+  savedUserId       String   // UUID of user who was saved
+  createdAt         DateTime @default(now())
+  isActive          Boolean  @default(true)  // true if still saved, false if removed
+  transactionCount  Int      @default(0)     // number of transactions between users
+  savedByUser       User     @relation("SavedByUsers", fields: [savedByUserId], references: [id])
+  savedUser         User     @relation("SavedUsers", fields: [savedUserId], references: [id])
+
+  @@unique([savedByUserId, savedUserId])  // Prevent duplicate saves
+  @@index([savedByUserId])
+  @@index([savedUserId])
+  @@map("saved_profiles")
 }

@@ -25,9 +25,16 @@ export class SearchService {
     const user = await this.prisma.user.findUnique({
       where: { phoneNumber },
       select: {
+        id: true,
         name: true,
         date_of_birth: true,
         businessType: true,
+        profileImageUrl: true,
+        phoneNumber: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        createdAt: true,
+        updatedAt: true
       },
     });
 
@@ -46,9 +53,16 @@ export class SearchService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
+        id: true,
         name: true,
         date_of_birth: true,
         businessType: true,
+        profileImageUrl: true,
+        phoneNumber: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        createdAt: true,
+        updatedAt: true
       },
     });
 
@@ -97,9 +111,16 @@ export class SearchService {
         aadhaarNumber: formattedAadhaar,
       } as Prisma.UserWhereInput,
       select: {
+        id: true,
         name: true,
         date_of_birth: true,
         businessType: true,
+        profileImageUrl: true,
+        phoneNumber: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        createdAt: true,
+        updatedAt: true
       },
     });
 
@@ -122,9 +143,16 @@ export class SearchService {
     const user = await this.prisma.user.findUnique({
       where: { panNumber } as unknown as Prisma.UserWhereUniqueInput,
       select: {
+        id: true,
         name: true,
         date_of_birth: true,
         businessType: true,
+        profileImageUrl: true,
+        phoneNumber: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        createdAt: true,
+        updatedAt: true
       },
     });
 

@@ -6,11 +6,14 @@ import {
   InternalServerErrorException,
   Logger,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { FirebaseAuthError } from './errors/firebase-auth.error';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiProperty } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { v4 as uuid } from 'uuid';
 
 export class GenerateTokenDto {
   @IsString()
@@ -19,22 +22,16 @@ export class GenerateTokenDto {
   idToken: string;
 }
 
-export class RefreshTokenDto {
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  refreshToken: string;
-}
-
 @ApiTags('auth')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(private readonly authService: AuthService) {}
 
   @Post('token')
-  @ApiOperation({ summary: 'Generate access and refresh tokens from Firebase ID token' })
+  @ApiOperation({ summary: 'Generate authentication tokens' })
   @ApiBody({ type: GenerateTokenDto })
   @ApiResponse({
     status: 200,
@@ -48,6 +45,7 @@ export class AuthController {
         accessTokenExpiresIn: { type: 'number', description: 'Access token expiration time in seconds' },
         refreshTokenExpiresIn: { type: 'number', description: 'Refresh token expiration time in seconds' },
         timestamp: { type: 'string' },
+        requestId: { type: 'string' },
       },
     },
   })
@@ -61,6 +59,20 @@ export class AuthController {
         message: { type: 'string' },
         code: { type: 'string' },
         timestamp: { type: 'string' },
+        requestId: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too Many Requests',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        timestamp: { type: 'string' },
+        requestId: { type: 'string' },
       },
     },
   })
@@ -78,6 +90,7 @@ export class AuthController {
         success: true,
         ...tokens,
         timestamp: new Date().toISOString(),
+        requestId: uuid(),
       };
     } catch (error) {
       this.logger.error('Token generation failed', {
@@ -85,6 +98,7 @@ export class AuthController {
         errorMessage: error.message,
         errorCode: error.code,
         timestamp: new Date().toISOString(),
+        requestId: uuid(),
       });
 
       const errorResponse = {
@@ -92,6 +106,7 @@ export class AuthController {
         message: error.message,
         code: error.code,
         timestamp: new Date().toISOString(),
+        requestId: uuid(),
       };
 
       // Handle TokenValidationError
@@ -145,53 +160,7 @@ export class AuthController {
         message: 'An unexpected error occurred during authentication. Please try again.',
         code: error.code || 'INTERNAL_ERROR',
         timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  @Post('refresh')
-  @ApiOperation({ summary: 'Generate new access token using refresh token' })
-  @ApiBody({ type: RefreshTokenDto })
-  @ApiResponse({
-    status: 200,
-    description: 'New access token generated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-        expiresIn: { type: 'number' },
-        timestamp: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid refresh token',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        message: { type: 'string' },
-        timestamp: { type: 'string' },
-      },
-    },
-  })
-  async refreshToken(@Body() body: RefreshTokenDto) {
-    try {
-      const tokens = await this.authService.refreshAccessToken(body.refreshToken);
-
-      return {
-        success: true,
-        ...tokens,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      throw new BadRequestException({
-        success: false,
-        message: error.message,
-        timestamp: new Date().toISOString(),
+        requestId: uuid(),
       });
     }
   }

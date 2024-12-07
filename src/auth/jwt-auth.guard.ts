@@ -25,11 +25,11 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const decodedToken = await this.authService.verifyCustomToken(token);
+      const decodedToken = await this.authService.validateFirebaseToken(token);
       request.user = decodedToken;
       return true;
     } catch (error) {
-      console.log(error);
+      console.error('Token validation error:', error);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
