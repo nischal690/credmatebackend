@@ -194,7 +194,11 @@ export class UserService extends BaseService {
         // Reactivate if previously removed
         savedProfile = await this.prismaService.savedProfile.update({
           where: { id: existingSave.id },
-          data: { isActive: true },
+          data: { 
+            isActive: true,
+            name: userToSave.name,
+            mobileNumber: userToSave.phoneNumber,
+          },
         });
       }
     } else {
@@ -205,6 +209,8 @@ export class UserService extends BaseService {
           savedUserId: userIdToSave,
           isActive: true,
           transactionCount: 0,  // Initialize with 0
+          name: userToSave.name,
+          mobileNumber: userToSave.phoneNumber,
         },
       });
     }
@@ -247,5 +253,63 @@ export class UserService extends BaseService {
         transactionCount,
       },
     });
+  }
+
+  async getSavedProfiles(phoneNumber: string) {
+    // Get user from database using phone number
+    const dbCurrentUser = await this.prismaService.user.findUnique({
+      where: { phoneNumber }
+    });
+
+    if (!dbCurrentUser) {
+      throw new UnauthorizedException('Current user not found in database');
+    }
+
+    // Get all saved profiles for this user
+    const savedProfiles = await this.prismaService.savedProfile.findMany({
+      where: {
+        savedByUserId: dbCurrentUser.id,
+        isActive: true,
+      },
+    });
+
+    // Get all the saved user IDs
+    const savedUserIds = savedProfiles.map(profile => profile.savedUserId);
+
+    // Fetch user details for all saved users in a single query
+    const savedUsers = await this.prismaService.user.findMany({
+      where: {
+        id: {
+          in: savedUserIds,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        date_of_birth: true,
+        businessType: true,
+        profileImageUrl: true,
+        phoneNumber: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Create a map of user details for quick lookup
+    const userDetailsMap = savedUsers.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    // Format the response to match the expected structure
+    return {
+      savedProfiles: savedProfiles.map(profile => ({
+        ...userDetailsMap[profile.savedUserId],
+        transactionCount: profile.transactionCount,
+        savedAt: profile.createdAt,
+      })),
+    };
   }
 }

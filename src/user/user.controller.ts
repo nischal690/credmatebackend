@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { IsString, IsOptional, IsDateString } from 'class-validator';
 import {
   ApiTags,
@@ -119,6 +120,23 @@ export class UserController {
       cleanedData,
       file,
     );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('saved-profiles')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get saved profiles for current user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns list of saved profiles'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'User not found in database'
+  })
+  async getSavedProfiles(@Request() req) {
+    // req.user is already verified by JwtAuthGuard and contains Firebase user data
+    return this.userService.getSavedProfiles(req.user.phoneNumber);
   }
 
   @Post('save-profile')

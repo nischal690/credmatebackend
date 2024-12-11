@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { SearchModule } from './search/search.module';
 import { HealthModule } from './common/health/health.module';
+import { BorrowerModule } from './borrower/borrower.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -21,6 +22,7 @@ import { AppController } from './app.controller';
     UserModule,
     SearchModule,
     HealthModule,
+    BorrowerModule,
   ],
   controllers: [AppController],
 })

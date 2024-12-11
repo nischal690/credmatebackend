@@ -6,7 +6,9 @@ import helmet from 'helmet';
 import compression from 'compression';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'debug', 'log', 'verbose'],
+  });
   
   // Security headers
   app.use(helmet());
