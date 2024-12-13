@@ -11,6 +11,12 @@ datasource db {
 }
 
 // ======= User Service =======
+enum UserPlan {
+  PRO_INDIVIDUAL
+  PRO_BUSINESS
+  PRIORITY_BUSINESS
+}
+
 model User {
   id              String    @id @default(uuid())
   email           String?   @unique
@@ -22,6 +28,9 @@ model User {
   aadhaarNumber   String?   @unique
   panNumber       String?   @unique
   profileImageUrl String?
+  plan            UserPlan? 
+  referralCode    String    @unique @default(uuid()) // Automatically generated referral code
+  planPrice       Float?    // New field for storing plan price
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   metadata        Json?     // For extensible user properties
