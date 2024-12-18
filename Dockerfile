@@ -17,6 +17,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Add this line in your Dockerfile where you copy source files
+COPY /etc/secrets/credmatesecret/credmate.json /app/src/auth/
+
 # Build the application
 RUN npm run build
 
