@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
-import * as path from 'path';
+import { ServiceAccount } from 'firebase-admin';
 import { FirebaseAuthError } from './errors/firebase-auth.error';
 
 @Injectable()
@@ -13,13 +13,19 @@ export class FirebaseService implements OnModuleInit {
   async onModuleInit() {
     try {
       if (!admin.apps.length) {
-        const credentialsPath =
-          this.configService.get<string>('FIREBASE_CREDENTIALS_PATH') ||
-          path.join(__dirname, '../../src/auth/credmate.json');
-
+        const firebaseCredentials = this.configService.get<string>('FIREBASE_CREDENTIALS_JSON');
+        if (!firebaseCredentials) {
+          throw new Error('FIREBASE_CREDENTIALS_JSON environment variable is not set');
+        }
+  
+        // Ensure proper parsing of the environment variable
+        const serviceAccount = JSON.parse(firebaseCredentials) as ServiceAccount;
+  
+        // Initialize Firebase Admin with the service account credentials
         admin.initializeApp({
-          credential: admin.credential.cert(credentialsPath),
+          credential: admin.credential.cert(serviceAccount)
         });
+  
         this.logger.log('Firebase Admin SDK initialized successfully');
       }
     } catch (error) {
@@ -27,6 +33,7 @@ export class FirebaseService implements OnModuleInit {
       throw error;
     }
   }
+  
 
   async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
     try {

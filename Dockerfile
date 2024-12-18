@@ -11,14 +11,11 @@ COPY package*.json ./
 COPY tsconfig*.json ./ 
 COPY prisma ./prisma/
 
-# Install dependencies
+# Install all dependencies (including devDependencies)
 RUN npm ci
 
 # Copy source code
 COPY . .
-
-# Add this line in your Dockerfile where you copy source files
-COPY /etc/secrets/credmatesecret/credmate.json /app/src/auth/
 
 # Build the application
 RUN npm run build
@@ -40,16 +37,16 @@ RUN apk add --no-cache openssl
 RUN mkdir -p /app && chown node:node /app
 WORKDIR /app
 
-# Copy only necessary files from builder
+# Copy only necessary files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package*.json ./ 
 COPY --from=builder /app/prisma ./prisma
 
 # Use node user for better security
 USER node
 
-# Install dependencies for production
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies if required for production)
+RUN npm ci
 
 # Generate Prisma client
 RUN npx prisma generate
