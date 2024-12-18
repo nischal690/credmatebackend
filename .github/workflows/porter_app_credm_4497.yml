@@ -1,0 +1,29 @@
+"on":
+    push:
+        branches:
+            - main
+name: Deploy to credm
+jobs:
+    porter-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Set Github tag
+              id: vars
+              run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            - name: Setup porter
+              uses: porter-dev/setup-porter@v0.1.0
+            - name: Deploy stack
+              timeout-minutes: 30
+              run: exec porter apply
+              env:
+                PORTER_APP_NAME: credm
+                PORTER_CLUSTER: "4497"
+                PORTER_DEPLOYMENT_TARGET_ID: c358d466-ca73-4c0c-83ff-bb27c8471cf6
+                PORTER_HOST: https://dashboard.porter.run
+                PORTER_PR_NUMBER: ${{ github.event.number }}
+                PORTER_PROJECT: "14329"
+                PORTER_REPO_NAME: ${{ github.event.repository.name }}
+                PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
+                PORTER_TOKEN: ${{ secrets.PORTER_APP_14329_4497 }}
