@@ -19,8 +19,6 @@ services:
       retries: 3
     env_file:
       - .env
-    volumes:
-      - ./src/auth/credmate.json:/app/src/auth/credmate.json:ro
 
 networks:
   credmate-network:

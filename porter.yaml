@@ -1,0 +1,35 @@
+version: v2
+name: credmate-backend
+
+services:
+  - name: api
+    type: web
+    run: npm run start:prod
+    port: 3000
+    cpuCores: 1
+    ramMegabytes: 1024
+    autoscaling:
+      enabled: true
+      minInstances: 1
+      maxInstances: 3
+      memoryThresholdPercent: 70
+      cpuThresholdPercent: 70
+    private: false
+    healthCheck:
+      enabled: true
+      httpPath: /health
+    env:
+      NODE_ENV: production
+      NODE_VERSION: 18
+
+build:
+  method: docker
+  context: ./
+  dockerfile: Dockerfile
+
+predeploy:
+  run: npx prisma generate
+
+env:
+  NODE_ENV: production
+  PORT: 3000
