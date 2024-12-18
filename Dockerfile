@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:22.11.0-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -18,13 +18,16 @@ RUN npm ci
 COPY . .
 
 # Add this line in your Dockerfile where you copy source files
-COPY src/auth/credmate.json /app/src/auth/
 
 # Build the application
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:22.11.0-alpine AS production
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
 
 # Install curl for healthchecks
 RUN apk add --no-cache curl
@@ -45,10 +48,17 @@ COPY --from=builder /app/prisma ./prisma
 USER node
 
 # Install dependencies for production
-RUN npm ci
+RUN npm ci --only=production
 
 # Generate Prisma client
 RUN npx prisma generate
 
+# Expose application port
 EXPOSE 3000
-CMD ["npm", "run", "start:prod"]
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start the application
+CMD ["node", "dist/main"]
