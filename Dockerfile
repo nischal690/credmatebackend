@@ -1,8 +1,11 @@
 # Build stage
-FROM node:22.11.0-alpine AS builder
+FROM node:20.10-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ curl
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
@@ -11,55 +14,58 @@ COPY package*.json ./
 COPY tsconfig*.json ./ 
 COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
+# Install dependencies with specific flags for production build
+RUN npm ci --prefer-offline --no-audit
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Copy source code
-COPY . .
-
-# Add this line in your Dockerfile where you copy source files
-COPY /etc/secrets/credmatesecret/credmate.json /app/src/auth/
+COPY --chown=appuser:appgroup . .
 
 # Build the application
 RUN npm run build
 
 # Production stage
-FROM node:22.11.0-alpine AS production
+FROM node:20.10-alpine AS production
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV PORT=3000
+ENV NODE_ENV=production \
+    PORT=3000 \
+    TZ=UTC
 
-# Install curl for healthchecks
-RUN apk add --no-cache curl
+# Install production dependencies
+RUN apk add --no-cache \
+    curl \
+    openssl \
+    tzdata \
+    && rm -rf /var/cache/apk/*
 
-# Install openssl
-RUN apk add --no-cache openssl
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Create app directory and set permissions
-RUN mkdir -p /app && chown node:node /app
 WORKDIR /app
+RUN chown appuser:appgroup /app
 
 # Copy only necessary files from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./ 
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
+COPY --from=builder --chown=appuser:appgroup /app/package*.json ./ 
+COPY --from=builder --chown=appuser:appgroup /app/prisma ./prisma
 
-# Use node user for better security
-USER node
+# Switch to non-root user
+USER appuser
 
-# Install all dependencies (including dev dependencies if required for production)
-RUN npm ci
-
-# Generate Prisma client
-RUN npx prisma generate
+# Install production dependencies only
+RUN npm ci --prefer-offline --no-audit --production && \
+    npm cache clean --force
 
 # Expose application port
 EXPOSE 3000
 
 # Add healthcheck
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:3000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
 CMD ["node", "dist/main"]

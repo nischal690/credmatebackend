@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { ConfigService } from '@nestjs/config';
 import { ServiceAccount } from 'firebase-admin';
 import { FirebaseAuthError } from './errors/firebase-auth.error';
+import axios from 'axios';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
@@ -13,27 +14,62 @@ export class FirebaseService implements OnModuleInit {
   async onModuleInit() {
     try {
       if (!admin.apps.length) {
-        const firebaseCredentials = this.configService.get<string>('FIREBASE_CREDENTIALS_JSON');
-        if (!firebaseCredentials) {
-          throw new Error('FIREBASE_CREDENTIALS_JSON environment variable is not set');
+        let serviceAccount: admin.ServiceAccount;
+
+        // Use Firebase credentials URL directly
+        const firebaseCredentialsUrl = 'https://firebasestorage.googleapis.com/v0/b/credmate-463b5.appspot.com/o/json%20cred%2Fcredmate-463b5-firebase-adminsdk-ff43d-b301168c51.json?alt=media&token=9570fa10-26ea-4d26-9bea-0f42be0e9434';
+        this.logger.log('Firebase Credentials URL:', firebaseCredentialsUrl);
+
+        try {
+          // Download the Firebase credentials from the URL
+          this.logger.log('Attempting to fetch Firebase credentials...');
+          const response = await axios.get(firebaseCredentialsUrl);
+          this.logger.log('Received response from credentials URL');
+          
+          // Handle the response data
+          let credentialsData = response.data;
+          
+          // If the data is a string (JSON string), parse it
+          if (typeof credentialsData === 'string') {
+            try {
+              credentialsData = JSON.parse(credentialsData);
+            } catch (parseError) {
+              this.logger.error('Failed to parse credentials JSON string', parseError);
+              throw parseError;
+            }
+          }
+          
+          // Validate the required fields for ServiceAccount
+          if (!credentialsData.project_id || !credentialsData.private_key || !credentialsData.client_email) {
+            throw new Error('Invalid service account format: missing required fields');
+          }
+
+          serviceAccount = credentialsData as admin.ServiceAccount;
+          this.logger.log('Service account data parsed successfully');
+
+          // Initialize Firebase Admin with the service account credentials
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+          });
+          
+          this.logger.log('Firebase Admin SDK initialized successfully');
+        } catch (error) {
+          this.logger.error('Failed to fetch Firebase credentials from URL', {
+            error: error.message,
+            stack: error.stack,
+            response: error.response?.data
+          });
+          throw error;
         }
-  
-        // Ensure proper parsing of the environment variable
-        const serviceAccount = JSON.parse(firebaseCredentials) as ServiceAccount;
-  
-        // Initialize Firebase Admin with the service account credentials
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-  
-        this.logger.log('Firebase Admin SDK initialized successfully');
       }
     } catch (error) {
-      this.logger.error('Failed to initialize Firebase Admin SDK', error);
+      this.logger.error('Failed to initialize Firebase Admin SDK', {
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
-  
 
   async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
     try {

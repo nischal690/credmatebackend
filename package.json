@@ -23,7 +23,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:seed": "ts-node prisma/seed.ts",
     "deploy": "firebase deploy --only functions",
-    "serve": "firebase serve --only functions"
+    "serve": "firebase serve --only functions",
+    "postinstall": "prisma generate",
+    "ci": "npm run lint && npm run test:cov && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.696.0",
@@ -32,12 +34,14 @@
     "@aws-sdk/lib-storage": "^3.705.0",
     "@aws-sdk/s3-request-presigner": "^3.705.0",
     "@nestjs/common": "^10.4.13",
+    "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.4.13",
     "@nestjs/platform-express": "^10.4.13",
     "@nestjs/swagger": "^8.0.7",
     "@nestjs/throttler": "^6.2.1",
     "@prisma/client": "^5.22.0",
     "@vendia/serverless-express": "^4.12.6",
+    "axios": "^1.7.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "compression": "^1.7.5",
@@ -56,7 +60,6 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
-    "@nestjs/config": "^3.3.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/express": "^5.0.0",
