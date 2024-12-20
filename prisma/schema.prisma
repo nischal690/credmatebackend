@@ -12,6 +12,7 @@ datasource db {
 
 // ======= User Service =======
 enum UserPlan {
+  FREE
   PRO_INDIVIDUAL
   PRO_BUSINESS
   PRIORITY_BUSINESS
@@ -28,7 +29,7 @@ model User {
   aadhaarNumber   String?   @unique
   panNumber       String?   @unique
   profileImageUrl String?
-  plan            UserPlan? 
+  plan            UserPlan  @default(FREE)
   referralCode    String    @unique @default(uuid()) // Automatically generated referral code
   planPrice       Float?    // New field for storing plan price
   createdAt       DateTime  @default(now())
@@ -238,4 +239,19 @@ model ReportedBorrower {
 
   @@index([reportedByUserId])
   @@map("reported_borrowers")
+}
+
+// ======= Transaction Service =======
+model Transaction {
+  id            String    @id @default(uuid())
+  uid           String    // User ID associated with the transaction
+  amount        Float     // Transaction amount
+  confirmed     Boolean   @default(false)
+  confirmedData Json?     // Data related to transaction confirmation
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  metadata      Json?     // For extensible transaction properties
+
+  @@map("transactions")
+  @@index([uid])
 }

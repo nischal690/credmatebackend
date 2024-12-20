@@ -90,6 +90,17 @@ export class UserService extends BaseService {
         date_of_birth: true,
         businessType: true,
         profileImageUrl: true,
+        phoneNumber: true,
+        email: true,
+        aadhaarNumber: true,
+        panNumber: true,
+        plan: true,
+        referralCode: true,
+        planPrice: true,
+        metadata: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
       },
     });
 
@@ -114,6 +125,7 @@ export class UserService extends BaseService {
       where: { phoneNumber: user.phoneNumber },
       select: {
         id: true,
+        email: true,
         name: true,
         date_of_birth: true,
         businessType: true,
@@ -121,6 +133,11 @@ export class UserService extends BaseService {
         phoneNumber: true,
         aadhaarNumber: true,
         panNumber: true,
+        plan: true,
+        referralCode: true,
+        planPrice: true,
+        metadata: true,
+        status: true,
         createdAt: true,
         updatedAt: true
       },
@@ -135,6 +152,7 @@ export class UserService extends BaseService {
         },
         select: {
           id: true,
+          email: true,
           name: true,
           date_of_birth: true,
           businessType: true,
@@ -142,6 +160,11 @@ export class UserService extends BaseService {
           phoneNumber: true,
           aadhaarNumber: true,
           panNumber: true,
+          plan: true,
+          referralCode: true,
+          planPrice: true,
+          metadata: true,
+          status: true,
           createdAt: true,
           updatedAt: true
         },
