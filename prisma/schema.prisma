@@ -36,6 +36,8 @@ model User {
   updatedAt       DateTime  @updatedAt
   metadata        Json?     // For extensible user properties
   status          String    @default("ACTIVE") // ACTIVE, SUSPENDED, DELETED
+  credmateScore   Int       @default(0)  // New field for Credmate score
+  creditScore     Int       @default(0)  // New field for credit score
 
   @@map("users")
 }
